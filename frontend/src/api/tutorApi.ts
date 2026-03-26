@@ -1,6 +1,5 @@
 // src/api/tutorApi.ts
-// In production, the backend and frontend share the exact same domain, so the URL root is blank.
-const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:8000';
+const API_BASE_URL = 'http://localhost:8000';
 
 export interface QuizQuestion {
   id: number;
