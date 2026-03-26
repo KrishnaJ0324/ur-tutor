@@ -1,3 +1,10 @@
+"""
+main.py
+-------
+This is the primary entry point for the UR Tutor backend.
+It physically initiates the FastAPI web server, configures CORS (so the frontend can securely talk to it), 
+and securely imports the conversational endpoints from the api/routes.py bridge file.
+"""
 import os
 from dotenv import load_dotenv
 load_dotenv()

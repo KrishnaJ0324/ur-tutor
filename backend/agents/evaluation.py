@@ -1,3 +1,11 @@
+"""
+agents/evaluation.py
+--------------------
+This is the Grader AI Agent.
+When a user submits a quiz answer, the router intercepts it and sends it here. 
+This agent uses mathematical strictness to grade the submission against the active quiz keys stored in the State,
+assigns fractional points, and returns an overarching critique for the user's progress.
+"""
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage
 from models.schema import EvaluationResponse

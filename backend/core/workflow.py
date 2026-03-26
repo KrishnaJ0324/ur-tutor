@@ -1,3 +1,12 @@
+"""
+core/workflow.py
+----------------
+This file builds the mathematical LangGraph workflow. It defines the 'nodes' (our specialized AI agents) 
+and 'edges' (the logical paths between them). 
+
+Every user message enters at the START edge, travels to the `router` traffic cop, and is then 
+conditionally routed to either `teach`, `quiz`, or `eval` before concluding at the END node.
+"""
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 

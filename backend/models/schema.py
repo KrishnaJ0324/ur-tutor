@@ -1,3 +1,10 @@
+"""
+models/schema.py
+----------------
+This file enforces mathematical strictness on the AI. By defining Pydantic classes, we prevent the AI from 
+"hallucinating" formatting. When the Tester or Grader nodes finish thinking, they MUST output their data exactly 
+matching these classes, which allows our React frontend to safely parse them into interactive UI modules.
+"""
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 

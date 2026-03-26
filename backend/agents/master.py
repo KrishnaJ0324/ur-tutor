@@ -1,8 +1,30 @@
+"""
+agents/master.py
+----------------
+This is the central Teacher AI Agent. 
+It operates strictly via the Socratic method. If the router detects the user hasn't selected a difficulty, 
+this agent halts and forces a prompt. Otherwise, it generates comprehensive textbook-style lessons 
+and stops when a topic is fully addressed.
+"""
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage
+from langchain_core.tools import tool
 from models.schema import TeachingResponse
 from core.llm import llm
 from core.state import GraphState
+
+@tool
+def get_pedagogical_fact(concept: str) -> str:
+    """A formal LangChain tool that generates a fun trivia fact based on the concept to enrich the prompt."""
+    facts = {
+        "python": "Fun Fact: Python was named after Monty Python, not the snake!",
+        "loops": "Fun Fact: The first computer loop was written by Ada Lovelace in 1843!",
+        "math": "Fun Fact: A 'jiffy' is an actual unit of time measuring 1/100th of a second!"
+    }
+    for key in facts:
+        if key in concept.lower():
+            return facts[key]
+    return "Fun Fact: Learning new things physically creates new neural pathways in your brain!"
 
 def teach_node(state: GraphState) -> dict:
     profile = state["profile"]
@@ -23,17 +45,23 @@ TEACHING RULES:
 TOPIC EXTRACTION (CRITICAL):
 - If the user's latest message explicitly mentions a topic, you MUST teach THAT topic."""),
         MessagesPlaceholder(variable_name="messages"),
-        ("human", "Current Context: Topic={topic}, Concept={concept}, Step={step}, Difficulty={difficulty}")
+        ("human", "Current Context: Topic={topic}, Concept={concept}, Step={step}, Difficulty={difficulty}\nTool Context: {tool_fact}")
     ])
     
     chain = prompt | llm.with_structured_output(TeachingResponse)
     
+    concept = profile.get("current_concept", "Basics")
+    
+    # Execute the LangChain tool natively
+    injected_fact = get_pedagogical_fact.invoke({"concept": concept})
+    
     res = chain.invoke({
         "messages": state["messages"],
         "topic": profile.get("current_topic", "General"),
-        "concept": profile.get("current_concept", "Basics"),
+        "concept": concept,
         "step": profile.get("step", 1),
-        "difficulty": profile.get("difficulty", "easy")
+        "difficulty": profile.get("difficulty", "easy"),
+        "tool_fact": injected_fact
     })
     
     # Update explicit difficulty if detected

@@ -1,3 +1,11 @@
+"""
+agents/quiz.py
+--------------
+This is the specialized Tester AI Agent.
+When the traffic cop router detects the user wants to practice, it bypasses conversational AI entirely 
+and forces the LLM to output a strict `QuizResponse` JSON block containing exactly 4 randomized multiple-choice 
+questions about the topic they just learned.
+"""
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage
 from models.schema import QuizResponse

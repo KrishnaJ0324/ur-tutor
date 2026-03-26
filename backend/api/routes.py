@@ -1,3 +1,11 @@
+"""
+api/routes.py
+-------------
+This file is the "Bridge" connecting your React frontend to the AI backend.
+When a user hits the `/chat` endpoint, this file pulls their conversation 'Thread' out of LangGraph memory,
+pipes the newest message into the graph, and securely streams the AI's response text back character-by-character 
+(along with a hidden JSON `||STATE:...||` tracking mechanism for the UI to update visually).
+"""
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 import json
