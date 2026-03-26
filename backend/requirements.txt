@@ -9,3 +9,4 @@ langchain-openai
 python-dotenv
 sqlalchemy
 langchain-google-genai
+aiofiles

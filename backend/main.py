@@ -32,3 +32,12 @@ async def health_check():
     return {"status": "ok"}
 
 app.include_router(router, tags=["Chat"])
+
+# Mount Compiled React Frontend (Unifies the app for single-server DigitalOcean deployment)
+frontend_path = os.path.join(os.path.dirname(__file__), "../frontend/dist")
+if os.path.exists(frontend_path):
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+else:
+    print("Warning: React dist folder not found. Run 'npm run build' in the frontend directory.")
+#nohup uvicorn main:app --host 0.0.0.0 --port 80 &
