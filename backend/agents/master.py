@@ -52,8 +52,22 @@ TOPIC EXTRACTION (CRITICAL):
     
     concept = profile.get("current_concept", "Basics")
     
-    # Execute the LangChain tool natively
-    injected_fact = get_pedagogical_fact.invoke({"concept": concept})
+    # 1. Autonomous Agent Tool Decision Phase
+    llm_with_tools = llm.bind_tools([get_pedagogical_fact])
+    tool_prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are the autonomous pre-processing agent for the generic Teacher API. Read this concept strictly, and invoke your tool to look up a trivia fact."),
+        ("human", "Concept: {concept}")
+    ])
+    tool_chain = tool_prompt | llm_with_tools
+    
+    injected_fact = "No trivia available."
+    try:
+        tool_res = tool_chain.invoke({"concept": concept})
+        if tool_res.tool_calls:
+            print(f"🛠️ [Master Sub-Agent] Executing Autnomous Tool Call: {tool_res.tool_calls[0]['name']}")
+            injected_fact = get_pedagogical_fact.invoke(tool_res.tool_calls[0]["args"])
+    except Exception as e:
+        injected_fact = "Fun Fact: Learning changes the brain!"
     
     res = chain.invoke({
         "messages": state["messages"],

@@ -8,9 +8,17 @@ assigns fractional points, and returns an overarching critique for the user's pr
 """
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage
+from langchain_core.tools import tool
 from models.schema import EvaluationResponse
 from core.llm import llm_strict
 from core.state import GraphState
+
+@tool
+def verify_grading_accuracy(is_quiz: bool) -> str:
+    """Invoked autonomously by the Evaluation Sub-Agent to determine the strictness level of the grading rubric dynamically."""
+    if is_quiz:
+        return "RUBRIC TOOL TARGET: Grade severely algorithmically and mathematically. Assess errors as sharp fractional point losses."
+    return "RUBRIC TOOL TARGET: Grade completely conversationally. Maintain a highly nurturing tone and ignore minor spelling issues entirely."
 
 def eval_node(state: GraphState) -> dict:
     profile = state["profile"]
@@ -29,7 +37,7 @@ CRITICAL INSTRUCTIONS:
    - Evaluate their understanding conceptually. `accuracy` should be a float from 0.0 to 1.0.
    - Provide standard, encouraging feedback explaining the concept."""),
         MessagesPlaceholder(variable_name="messages"),
-        ("human", "Expected Answer/Key:\n{expected_answer}\n\nEvaluate my answer.")
+        ("human", "Expected Answer/Key:\n{expected_answer}\n\nTool Rubric Directive:\n{tool_obs}\n\nEvaluate my answer.")
     ])
     
     chain = prompt | llm_strict.with_structured_output(EvaluationResponse)
@@ -37,9 +45,21 @@ CRITICAL INSTRUCTIONS:
     expected_answer = profile.get("last_question", "")
     is_quiz = expected_answer.startswith("QUIZ_KEY:")
     
+    llm_with_tools = llm_strict.bind_tools([verify_grading_accuracy])
+    t_res = llm_with_tools.invoke([
+        ("system", "Call your tool to securely retrieve the rubric strictness policy constraint threshold using the is_quiz marker boolean."),
+        ("human", f"Is quiz payload active: {str(is_quiz).lower()}")
+    ])
+    
+    tool_obs = "Grade organically."
+    if t_res.tool_calls:
+        print(f"🛠️ [Grader Sub-Agent] Executing Autonomous Tool Call: {t_res.tool_calls[0]['name']}")
+        tool_obs = verify_grading_accuracy.invoke(t_res.tool_calls[0]["args"])
+    
     eval_res = chain.invoke({
         "messages": state["messages"],
-        "expected_answer": expected_answer 
+        "expected_answer": expected_answer,
+        "tool_obs": tool_obs
     })
     
     score = eval_res.rubric.accuracy
