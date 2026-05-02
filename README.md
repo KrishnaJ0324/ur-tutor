@@ -2,57 +2,51 @@
 
 ## Overview
 
-UR Tutor is an adaptive AI tutoring system that combines a LangGraph-powered multi-agent backend with a modern React frontend to deliver personalized teaching, quizzing, and evaluation. The platform uses a Supervisor Agent router to dispatch student interactions to specialized teaching, quiz, and evaluation nodes, each equipped with LLM-driven agents and tool access. It provides a conversational chat interface where students receive real-time feedback and progress tracking.
+UR Tutor is an adaptive AI tutoring system that uses multi-agent orchestration to deliver personalized learning experiences. It combines a LangGraph-based backend with specialized teaching, quiz, and evaluation agents alongside a modern React frontend to create an interactive tutoring interface.
 
 ## Key Modules
 
-**Backend** — An adaptive tutoring orchestrator built on LangGraph and FastAPI that manages multi-agent AI workflows. It routes user messages through a Supervisor Agent to specialized teaching, quiz, and evaluation nodes, each powered by LangChain agents with tool access. The module uses file-based session storage and in-memory checkpoints for conversation history, with HTTP endpoints that bridge the React frontend to the educational agents while maintaining semantic routing and delegated tool invocation over explicit control flow.
+**Backend**: Implements an adaptive tutoring workflow using LangGraph and LangChain, with a Supervisor Agent that routes user intents to specialized agents (teach, quiz, eval). It integrates Google Generative AI for inference, FastAPI for HTTP routing, and maintains conversational state through in-memory session management with checkpointing. Each agent uses LangChain's `create_agent` function with explicit Tool objects to handle LLM invocations, and the API streams responses with embedded state metadata to enable reactive UI updates.
 
-**Frontend** — A modern React + TypeScript + Vite single-page application providing a conversational chat interface with particle animations, quiz functionality, and user profile tracking. It communicates with the backend through a centralized API layer (`tutorApi.ts`) that handles message streaming, session management, and chat history persistence. The UI implements a dark-mode glassmorphic design language using CSS variables and flexbox layouts, with session lifecycle management including graceful termination on browser close.
-
-**Root** — The foundational documentation and configuration layer for the entire UR Tutor project. It contains project-level README documentation detailing the multi-agent architecture, standard development configuration files (`.gitignore`), and setup instructions that synchronize understanding between backend and frontend components.
+**Frontend**: A React 19 + TypeScript + Vite single-page application providing an interactive chat interface with real-time message streaming, adaptive difficulty selection, and quiz panels. It communicates with the backend through a RESTful API layer (`tutorApi.ts`), maintains client-side session state, and features a dark-mode glassmorphic design system for an engaging user experience.
 
 ## How It Works
 
-When a student sends a message through the React frontend, it is transmitted to the FastAPI backend via the centralized API layer. The backend's Supervisor Agent receives the message and semantically routes it to the appropriate specialized node—teaching, quiz, or evaluation—based on the conversation context. The selected agent processes the request using LangChain tools and the configured LLM, generating an educational response enriched with formatting. The response is persisted to file-based session storage and returned to the frontend, where it appears in the chat interface. Conversation history is maintained in-memory within each session using LangGraph checkpoints, allowing continuity across multiple user interactions without requiring persistent database storage.
+When a user sends a message, the frontend streams it to the backend REST API. The backend's Supervisor Agent analyzes the intent and routes the request to the appropriate specialized agent node (teach, quiz, or eval). The selected agent generates a response using Google Generative AI and relevant tools, with all conversational state tracked through LangGraph's StateGraph. The backend returns the response with embedded state metadata, which the frontend uses to update the UI reactively and maintain session continuity. Chat history is persisted within the user session, allowing the system to maintain context across multiple conversational turns without requiring permanent database storage.
 
 ## Getting Started
 
 ### Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/KrishnaJ0324/ur-tutor.git
-   cd ur-tutor
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/KrishnaJ0324/ur-tutor.git
+cd ur-tutor
 
-2. Install dependencies:
-   ```bash
-   # Backend
-   cd backend
-   pip install -r requirements.txt
-   
-   # Frontend
-   cd ../frontend
-   npm install
-   ```
+# Install backend dependencies
+cd backend
+pip install -r requirements.txt
 
-### Running the Application
-
-1. Start the backend server:
-   ```bash
-   cd backend
-   python -m uvicorn main:app --reload
-   ```
-
-2. In a new terminal, start the frontend development server:
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-
-3. Open your browser to `http://localhost:5173` (or the URL provided by Vite) to access the UR Tutor interface.
+# Install frontend dependencies
+cd ../frontend
+npm install
+```
 
 ### Configuration
 
-Set up environment variables for LLM settings and API endpoints in a `.env` file in the backend directory before running the application.
+Create a `.env` file in the backend directory with your Google Generative AI API key:
+```
+GOOGLE_API_KEY=your_api_key_here
+```
+
+### Running the Application
+
+```bash
+# Start the backend (from backend directory)
+uvicorn main:app --reload
+
+# Start the frontend (from frontend directory)
+npm run dev
+```
+
+The frontend will be available at `http://localhost:5173` and the backend API at `http://localhost:8000`.
