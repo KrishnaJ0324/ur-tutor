@@ -68,3 +68,9 @@ export const resetProfile = async (userId: string) => {
     body: JSON.stringify({ user_id: userId, message: "" }),
   });
 };
+
+export const endSession = (userId: string) => {
+  const body = JSON.stringify({ user_id: userId, message: "" });
+  const blob = new Blob([body], { type: 'application/json' });
+  navigator.sendBeacon(`${API_BASE_URL}/session/end`, blob);
+};

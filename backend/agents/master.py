@@ -6,14 +6,13 @@ It operates strictly via the Socratic method. If the router detects the user has
 this agent halts and forces a prompt. Otherwise, it generates comprehensive textbook-style lessons 
 and stops when a topic is fully addressed.
 """
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+from langchain.agents import create_agent
+from langchain_core.tools.simple import Tool
 from langchain_core.messages import AIMessage
-from langchain_core.tools import tool
-from models.schema import TeachingResponse
 from core.llm import llm
 from core.state import GraphState
 
-@tool
 def get_pedagogical_fact(concept: str) -> str:
     """A formal LangChain tool that generates a fun trivia fact based on the concept to enrich the prompt."""
     facts = {
@@ -26,88 +25,51 @@ def get_pedagogical_fact(concept: str) -> str:
             return facts[key]
     return "Fun Fact: Learning new things physically creates new neural pathways in your brain!"
 
+pedagogical_tool = Tool(
+    name="get_pedagogical_fact",
+    func=get_pedagogical_fact,
+    description="Get a fun trivia fact about a concept to enrich the lesson."
+)
+
 def teach_node(state: GraphState) -> dict:
     profile = state["profile"]
     user_message = state["messages"][-1].content
-    
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are an expert AI tutor. Your HIGHEST PRIORITY is to teach the EXACT topic/concept the user asks for in their message.
 
-TEACHING RULES:
-- If the user asks to learn a NEW topic and you do NOT know their difficulty level yet (Difficulty is empty), you MUST set `needs_difficulty` to true and set `explanation` to "Great! Before we dive in, are you a Beginner, Intermediate, or Advanced learner?". Do NOT teach yet.
-- If the user provides a difficulty (e.g. "I am a beginner"), set `detected_difficulty` to "beginner", set `needs_difficulty` to false, and START teaching the actual topic.
-- Teach comprehensively. Cover the concept in depth before asking any quiz questions.
-- Set `is_topic_complete` to false while still teaching. Only set it to true when the full concept has been covered across multiple steps.
-- For early steps (steps 1-3), set `question` to null — just teach, don't quiz.
-- For later steps (step 4+), you may include a quick comprehension check question.
-- The `topic` and `concept` fields MUST match what you are teaching.
+    # Compose the agent prompt
+    system_prompt = """You are an expert AI tutor. Your HIGHEST PRIORITY is to teach the EXACT topic/concept the user asks for in their message.\n\nTEACHING RULES:\n- If the user asks to learn a NEW topic and you do NOT know their difficulty level yet (Difficulty is empty), you MUST set `needs_difficulty` to true and set `explanation` to \"Great! Before we dive in, are you a Beginner, Intermediate, or Advanced learner?\". Do NOT teach yet.\n- If the user provides a difficulty (e.g. \"I am a beginner\"), set `detected_difficulty` to \"beginner\", set `needs_difficulty` to false, and START teaching the actual topic.\n- Teach comprehensively. Cover the concept in depth before asking any quiz questions.\n- Set `is_topic_complete` to false while still teaching. Only set it to true when the full concept has been covered across multiple steps.\n- For early steps (steps 1-3), set `question` to null — just teach, don't quiz.\n- For later steps (step 4+), you may include a quick comprehension check question.\n- The `topic` and `concept` fields MUST match what you are teaching.\n\nTOPIC EXTRACTION (CRITICAL):\n- If the user's latest message explicitly mentions a topic, you MUST teach THAT topic.\n"""
 
-TOPIC EXTRACTION (CRITICAL):
-- If the user's latest message explicitly mentions a topic, you MUST teach THAT topic."""),
-        MessagesPlaceholder(variable_name="messages"),
-        ("human", "Current Context: Topic={topic}, Concept={concept}, Step={step}, Difficulty={difficulty}\nTool Context: {tool_fact}")
-    ])
-    
-    chain = prompt | llm.with_structured_output(TeachingResponse)
-    
+    agent = create_agent(
+        model=llm,
+        tools=[pedagogical_tool],
+        system_prompt=system_prompt
+    )
+
+    # Compose the input for the agent
     concept = profile.get("current_concept", "Basics")
-    
-    # 1. Autonomous Agent Tool Decision Phase
-    llm_with_tools = llm.bind_tools([get_pedagogical_fact])
-    tool_prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are the autonomous pre-processing agent for the generic Teacher API. Read this concept strictly, and invoke your tool to look up a trivia fact."),
-        ("human", "Concept: {concept}")
-    ])
-    tool_chain = tool_prompt | llm_with_tools
-    
-    injected_fact = "No trivia available."
-    try:
-        tool_res = tool_chain.invoke({"concept": concept})
-        if tool_res.tool_calls:
-            print(f"🛠️ [Master Sub-Agent] Executing Autnomous Tool Call: {tool_res.tool_calls[0]['name']}")
-            injected_fact = get_pedagogical_fact.invoke(tool_res.tool_calls[0]["args"])
-    except Exception as e:
-        injected_fact = "Fun Fact: Learning changes the brain!"
-    
-    res = chain.invoke({
-        "messages": state["messages"],
-        "topic": profile.get("current_topic", "General"),
+    topic = profile.get("current_topic", "General")
+    step = profile.get("step", 1)
+    difficulty = profile.get("difficulty", "easy")
+
+    # The agent expects a message list
+    messages = state["messages"]
+
+    # Call the agent
+    result = agent.invoke({
+        "messages": messages,
+        "topic": topic,
         "concept": concept,
-        "step": profile.get("step", 1),
-        "difficulty": profile.get("difficulty", "easy"),
-        "tool_fact": injected_fact
+        "step": step,
+        "difficulty": difficulty
     })
-    
-    # Update explicit difficulty if detected
-    if res.detected_difficulty and res.detected_difficulty.lower() in ["beginner", "intermediate", "advanced"]:
-        profile["difficulty"] = res.detected_difficulty.lower()
-        profile["needs_difficulty"] = False
-        
-    if res.needs_difficulty:
-        text = res.explanation
-        profile["last_question"] = "difficulty_check"
-        profile["needs_difficulty"] = True
-    else:
-        text = f"**{res.concept}**\n\n{res.explanation}\n"
-        if res.example:
-            text += f"\n*Example:* {res.example}\n"
-        if res.analogy:
-            text += f"\n*Analogy:* {res.analogy}\n"
-        
-        if res.is_topic_complete:
-            text += "\n---\n\n🎉 **Topic Complete!** Would you like to proceed to a **quiz**, or learn about **something else**?"
-            profile["last_question"] = "topic_complete"
-        else:
-            if res.question:
-                text += f"\n---\n\n**Quick Check:** {res.question}"
-                profile["last_question"] = res.question
-            else:
-                text += "\n---\n\n*Type \"continue\" to keep learning.*"
-                
-    profile["current_topic"] = res.topic
-    profile["current_concept"] = res.concept
-    profile["step"] = profile.get("step", 1) + 1
-    
+
+    # The result is an AIMessage (or similar)
+    text = result.content if hasattr(result, "content") else str(result)
+
+    # Optionally update profile as before (simple logic)
+    profile["current_topic"] = topic
+    profile["current_concept"] = concept
+    profile["step"] = step + 1
+
     return {
         "messages": [AIMessage(content=text)],
         "profile": profile,

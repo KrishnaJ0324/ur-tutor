@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes import router
+from db import chat_store
 # from database import engine
 # from models import profile_db  # ensure model is imported
 
@@ -23,6 +24,7 @@ app = FastAPI(
     title="UR Tutor API",
     description="Adaptive AI Teaching System",
     version="2.0.0",
+    on_startup=[chat_store.clear_all_sessions],
 )
 
 # Configure CORS

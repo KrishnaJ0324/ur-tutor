@@ -14,12 +14,19 @@ from langchain_core.messages import HumanMessage
 
 from models.schema import ChatRequest, ChatResponse
 from core.workflow import app_graph
+from db import chat_store
 
 router = APIRouter()
 
 @router.post("/reset")
 async def reset_profile(request: ChatRequest):
+    chat_store.delete_session(request.user_id)
     return {"status": "success"}
+
+@router.post("/session/end")
+async def end_session(request: ChatRequest):
+    chat_store.delete_session(request.user_id)
+    return {"status": "deleted"}
 
 @router.post("/chat")
 async def chat_endpoint(request: ChatRequest):
@@ -44,16 +51,19 @@ async def chat_endpoint(request: ChatRequest):
     human_msg = HumanMessage(content=message)
     response_text = ""
     updated_profile = profile_state
-    
+
+    chat_store.save_message(user_id, "human", message)
+
     try:
         final_state = app_graph.invoke(
             {"messages": [human_msg], "profile": profile_state},
             config=config
         )
-        
+
         response_text = final_state.get("output_response", "Error generating response.")
         updated_profile = final_state.get("profile", profile_state)
-            
+        chat_store.save_message(user_id, "assistant", response_text)
+
     except Exception as e:
         import traceback
         traceback.print_exc()

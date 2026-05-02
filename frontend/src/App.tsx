@@ -3,6 +3,7 @@ import { Chat } from './components/Chat';
 import { GraduationCap, RotateCcw } from 'lucide-react';
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
+import { endSession } from './api/tutorApi';
 
 function App() {
   const [userId] = useState(() => 'user-' + Math.random().toString(36).substring(2, 9));
@@ -15,6 +16,12 @@ function App() {
       setParticlesReady(true);
     });
   }, []);
+
+  useEffect(() => {
+    const handleUnload = () => endSession(userId);
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [userId]);
 
   const handleReset = () => {
     if (window.confirm("Clear chat and start a new session?")) {
