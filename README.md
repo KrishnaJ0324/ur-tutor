@@ -1,40 +1,76 @@
-# ur-tutor
+# ext-ai-enabled-tutor-service
+
+LangGraph-based adaptive AI tutoring system with multi-agent orchestration, Socratic method instruction, and real-time streaming responses for personalized learning.
+
+**Version:** `0.1.0`  
+**Maintainer:** UR Tutor Development Team &lt;dev@urtutor.example.com&gt;
 
 ## Overview
 
-UR Tutor is an intelligent multi-agent tutoring system that leverages LLMs and LangGraph to provide personalized educational interactions. It combines a Python FastAPI backend with a modern React frontend to deliver real-time, adaptive learning experiences through teaching, quizzing, and evaluation modes.
+UR Tutor is an AI-powered adaptive tutoring platform that delivers personalized instruction through a multi-agent orchestration system. It uses LangGraph for workflow coordination, implements the Socratic method for teaching, generates contextual quizzes, and provides real-time streaming responses to create an engaging learning experience tailored to individual student needs.
 
-## Key Modules
+### Key Features
 
-**Backend**: A LangGraph-based multi-agent orchestration layer that routes user intents (teach, quiz, evaluate) through specialized agent nodes via a Supervisor Agent. It maintains ephemeral in-memory state with file-based session storage for chat history, and exposes pedagogical workflows through FastAPI endpoints that stream responses word-by-word with embedded metadata for real-time UI updates.
+- Multi-agent orchestration with supervisor routing via LangGraph
+- Socratic method-based teaching agent for adaptive instruction
+- Dynamic quiz generation and grading evaluation
+- Real-time streaming responses with word-by-word output
+- Session state management with file-based storage
+- Pydantic schema validation to prevent LLM hallucination
+- Google Gemini dual-instance configuration for creativity and consistency
 
-**Frontend**: A React + TypeScript + Vite single-page application providing an interactive tutoring interface with real-time chat, quiz functionality, and session persistence. It features animated particle effects, glassmorphic dark-mode design, markdown support, and API communication layers that stream tutor responses and track learning progress.
+### Dependencies
 
-**Root**: The foundational project configuration layer that establishes development standards, governs version control practices, and documents system architecture. It orchestrates the integration of the distributed FastAPI backend and Vite-built frontend into a cohesive real-time multi-agent system.
+- langchain
+- langgraph
+- google-generativeai
+- fastapi
+- pydantic
+- react
+- typescript
+- vite
 
-## How It Works
+## API Documentation
 
-When a user submits a query through the React frontend, the request is sent to the FastAPI backend, where a Supervisor Agent classifies the intent as teach, quiz, or evaluate. Based on this classification, the router dispatches the request to the appropriate specialized agent node (teach, quiz, or eval), which processes the pedagogical task using LangChain. The system maintains conversation state through in-memory GraphState and temporary file-based session storage, enabling continuity within a browser session. Responses are streamed word-by-word back to the frontend with embedded state metadata, allowing real-time UI updates and dynamic difficulty adjustment. The frontend displays responses with markdown formatting, animates particle effects for visual polish, and persists session data through beacon-based requests.
+- **Base URL:** `http://localhost:8000`
+- **Authentication:** `none`
+- **Swagger:** http://localhost:8000/docs
 
-## Getting Started
+### Key Endpoints
 
-### Backend Setup
-1. Navigate to the backend directory: `cd backend`
-2. Install Python dependencies: `pip install -r requirements.txt`
-3. Configure environment variables (LLM API keys, etc.) in `.env`
-4. Run the FastAPI server: `uvicorn main:app --reload`
+- `POST /chat` — Submit user message and receive AI tutoring response with streaming
+- `POST /quiz` — Request dynamically generated quiz questions based on learning topic
+- `POST /grade` — Submit quiz answers for evaluation and receive grading feedback
+- `GET /session` — Retrieve current session state and learning progress metrics
 
-### Frontend Setup
-1. Navigate to the frontend directory: `cd frontend`
-2. Install Node.js dependencies: `npm install`
-3. Start the Vite development server: `npm run dev`
-4. Open your browser to `http://localhost:5173`
+## Development
 
-### Environment Configuration
-Ensure backend API is accessible at `http://localhost:8000` from the frontend, and configure all required LLM provider API keys in the backend `.env` file before starting the development server.
+### Setup
+
+1. Clone the repository: git clone https://github.com/KrishnaJ0324/ur-tutor.git
+2. Install backend dependencies: cd backend && pip install -r requirements.txt
+3. Install frontend dependencies: cd frontend && npm install
+4. Configure environment variables: cp .env.example .env and update with your API keys
+5. Initialize Google Gemini API credentials in backend configuration
+
+- **Start:** `python backend/main.py`
+- **Test:** `pytest backend/tests/`
+- **Build:** `cd frontend && npm run build`
+
+## Deployment
+
+- **Docker image:** `urtutor/ur-tutor-service:0.1.0`
+
+### Environment Variables
+
+- `GOOGLE_API_KEY` *(required)* — Google Generative AI API key for Gemini model access
+- `SESSION_STORAGE_PATH` — File system path for session state storage
+- `GEMINI_TEMPERATURE_TEACH` — Temperature setting for teaching agent (creativity level)
+- `GEMINI_TEMPERATURE_QUIZ` — Temperature setting for quiz agent (consistency level)
+- `FRONTEND_URL` — URL of the React frontend application
 
 ## Latest Commit
 
-**`163eb7a`** by Krishna J — added logger to evaluation.py
+**`08889e0`** by Krishna J — added logger to quiz.py
 
-- `backend/agents/evaluation.py` — Added logging import, created module-level logger, and added try-except error handling with info/debug log statements around agent invocation.
+- `backend/agents/quiz.py` — Added logging import, logger initialization, and three logging statements (invocation start, exception handling, and completion tracking) to the quiz_node function.
