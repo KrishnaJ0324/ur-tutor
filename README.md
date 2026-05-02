@@ -2,51 +2,55 @@
 
 ## Overview
 
-UR Tutor is an adaptive AI tutoring system that uses multi-agent orchestration to deliver personalized learning experiences. It combines a LangGraph-based backend with specialized teaching, quiz, and evaluation agents alongside a modern React frontend to create an interactive tutoring interface.
+UR Tutor is an adaptive AI tutoring system that uses multiple specialized agents orchestrated by a supervisor to provide personalized teaching, quizzing, and evaluation. The system combines a FastAPI backend powered by LangGraph with a modern React frontend to deliver real-time conversational learning experiences with streaming responses.
 
 ## Key Modules
 
-**Backend**: Implements an adaptive tutoring workflow using LangGraph and LangChain, with a Supervisor Agent that routes user intents to specialized agents (teach, quiz, eval). It integrates Google Generative AI for inference, FastAPI for HTTP routing, and maintains conversational state through in-memory session management with checkpointing. Each agent uses LangChain's `create_agent` function with explicit Tool objects to handle LLM invocations, and the API streams responses with embedded state metadata to enable reactive UI updates.
+**Backend**: The backend is an adaptive AI tutoring system built on LangGraph and FastAPI that orchestrates multi-agent workflows through a router-based dispatcher. It implements a Supervisor Agent that intelligently routes user messages to specialized teaching, quiz, and evaluation agents, manages learner state through an in-memory GraphState structure, and exposes functionality via FastAPI HTTP endpoints that stream responses with embedded state metadata. All interactions are powered by Google Gemini models configured through a centralized LLM configuration layer, with workflow orchestration managed as a directed graph with memory checkpointing.
 
-**Frontend**: A React 19 + TypeScript + Vite single-page application providing an interactive chat interface with real-time message streaming, adaptive difficulty selection, and quiz panels. It communicates with the backend through a RESTful API layer (`tutorApi.ts`), maintains client-side session state, and features a dark-mode glassmorphic design system for an engaging user experience.
+**Frontend**: The frontend is a modern React + TypeScript single-page application built with Vite that serves as the user-facing interface for the tutoring platform. It features a Chat component for real-time conversational interactions with streaming responses, a ProfileWidget for displaying learning statistics, and a tutorApi integration layer that manages session lifecycle and API communication. The application maintains a dark-mode glassmorphic design system with comprehensive CSS variables and is optimized for both development and production through Vite's build pipeline.
+
+**Root**: The root module contains essential project configuration and documentation that establishes the foundation for the hybrid Node.js/Python technology stack. It includes `.gitignore` configuration for excluding build artifacts and environment files, and comprehensive README documentation that explains the system's multi-agent architecture and setup instructions.
 
 ## How It Works
 
-When a user sends a message, the frontend streams it to the backend REST API. The backend's Supervisor Agent analyzes the intent and routes the request to the appropriate specialized agent node (teach, quiz, or eval). The selected agent generates a response using Google Generative AI and relevant tools, with all conversational state tracked through LangGraph's StateGraph. The backend returns the response with embedded state metadata, which the frontend uses to update the UI reactively and maintain session continuity. Chat history is persisted within the user session, allowing the system to maintain context across multiple conversational turns without requiring permanent database storage.
+When a user sends a message through the React frontend, the Chat component streams the request to the FastAPI backend via the tutorApi layer. The backend's Supervisor Agent analyzes the message and routes it to the appropriate specialized agent—teaching, quiz, or evaluation—based on the user's needs. The selected agent processes the request using the current learner state (topics, difficulty level, conversation history) and generates a contextual response. The backend streams this response word-by-word back to the frontend with embedded state metadata, which the Chat component displays in real-time. The system persists conversation state across requests using a temporary file-based chat store, enabling continuous learning sessions without a permanent database.
 
 ## Getting Started
 
-### Installation
+### Backend Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/KrishnaJ0324/ur-tutor.git
-cd ur-tutor
-
-# Install backend dependencies
 cd backend
 pip install -r requirements.txt
-
-# Install frontend dependencies
-cd ../frontend
-npm install
+export GOOGLE_API_KEY="your-api-key-here"
+python -m uvicorn main:app --reload
 ```
 
-### Configuration
+The backend will start on `http://localhost:8000`.
 
-Create a `.env` file in the backend directory with your Google Generative AI API key:
-```
-GOOGLE_API_KEY=your_api_key_here
-```
-
-### Running the Application
+### Frontend Setup
 
 ```bash
-# Start the backend (from backend directory)
-uvicorn main:app --reload
-
-# Start the frontend (from frontend directory)
+cd frontend
+npm install
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:5173` and the backend API at `http://localhost:8000`.
+The frontend will start on `http://localhost:5173`.
+
+### Environment Configuration
+
+Create a `.env` file in the backend directory with your Google Gemini API key:
+
+```
+GOOGLE_API_KEY=your-api-key-here
+```
+
+Visit `http://localhost:5173` in your browser to access the tutoring interface.
+
+## Latest Commit
+
+**`2f81aed`** by Krishna J — docs: refresh README via docbot
+
+- `README.md` — The README was reformatted with simplified language, consolidated module descriptions, restructured Getting Started sections, and made code examples more concise and uniform.
