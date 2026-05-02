@@ -1,43 +1,40 @@
-# UR Tutor
+# ur-tutor
 
 ## Overview
 
-UR Tutor is an AI-powered educational tutoring system that delivers personalized learning experiences through a multi-agent architecture. It uses Google's Gemini LLM to implement Socratic teaching methods, adapting lessons and assessments in real-time based on student interactions. The system combines a FastAPI backend orchestrating intelligent agents with a modern React frontend providing an intuitive chat-based learning interface.
+UR Tutor is an intelligent multi-agent tutoring system that leverages LLMs and LangGraph to provide personalized educational interactions. It combines a Python FastAPI backend with a modern React frontend to deliver real-time, adaptive learning experiences through teaching, quizzing, and evaluation modes.
 
 ## Key Modules
 
-**Backend**: A FastAPI service that orchestrates multi-agent learning workflows using LangGraph. It implements specialized agents for routing user intents (teach, quiz, evaluate), generating adaptive lessons, creating difficulty-calibrated quiz questions, and grading responses. All agents leverage Google's Gemini LLM with temperature-tuned configurations, while state management uses in-memory LangGraph with optional session persistence through file-based chat storage.
+**Backend**: A LangGraph-based multi-agent orchestration layer that routes user intents (teach, quiz, evaluate) through specialized agent nodes via a Supervisor Agent. It maintains ephemeral in-memory state with file-based session storage for chat history, and exposes pedagogical workflows through FastAPI endpoints that stream responses word-by-word with embedded metadata for real-time UI updates.
 
-**Frontend**: A React + TypeScript single-page application built with Vite that serves as the user interface for UR Tutor. It features a responsive chat-based tutoring interface with animated particle backgrounds, real-time message streaming, and interactive quiz functionality. The architecture includes conversation management, user progress tracking, and session persistence, styled with a dark-mode glassmorphic design system.
+**Frontend**: A React + TypeScript + Vite single-page application providing an interactive tutoring interface with real-time chat, quiz functionality, and session persistence. It features animated particle effects, glassmorphic dark-mode design, markdown support, and API communication layers that stream tutor responses and track learning progress.
 
-**Root**: The foundational configuration and documentation layer establishing development standards, code organization, and contributor onboarding. It includes `.gitignore` rules for Python and Node.js artifacts, and comprehensive README documentation covering architecture, module organization, and setup procedures for both backend and frontend components.
+**Root**: The foundational project configuration layer that establishes development standards, governs version control practices, and documents system architecture. It orchestrates the integration of the distributed FastAPI backend and Vite-built frontend into a cohesive real-time multi-agent system.
 
 ## How It Works
 
-A user interacts with the React frontend by submitting a message or quiz response, which sends an HTTP request to the FastAPI backend at `localhost:8000`. The backend's router agent receives the request and dispatches it to the appropriate specialized agent—teaching, quiz, or evaluation—based on the user's intent. The selected agent processes the request using Google's Gemini LLM and returns a streamed response with embedded state metadata. The frontend receives the streamed response in real-time, updating the chat interface and displaying UI elements like quiz questions or progress indicators. Session state is maintained in-memory during the conversation, with optional persistence to file-based storage for chat history retrieval.
+When a user submits a query through the React frontend, the request is sent to the FastAPI backend, where a Supervisor Agent classifies the intent as teach, quiz, or evaluate. Based on this classification, the router dispatches the request to the appropriate specialized agent node (teach, quiz, or eval), which processes the pedagogical task using LangChain. The system maintains conversation state through in-memory GraphState and temporary file-based session storage, enabling continuity within a browser session. Responses are streamed word-by-word back to the frontend with embedded state metadata, allowing real-time UI updates and dynamic difficulty adjustment. The frontend displays responses with markdown formatting, animates particle effects for visual polish, and persists session data through beacon-based requests.
 
 ## Getting Started
 
 ### Backend Setup
-1. Clone the repository: `git clone https://github.com/KrishnaJ0324/ur-tutor.git`
-2. Navigate to the backend directory: `cd backend`
-3. Create a virtual environment: `python -m venv venv && source venv/bin/activate`
-4. Install dependencies: `pip install -r requirements.txt`
-5. Set environment variables (Google Gemini API key, etc.) in a `.env` file
-6. Start the server: `uvicorn main:app --reload`
+1. Navigate to the backend directory: `cd backend`
+2. Install Python dependencies: `pip install -r requirements.txt`
+3. Configure environment variables (LLM API keys, etc.) in `.env`
+4. Run the FastAPI server: `uvicorn main:app --reload`
 
 ### Frontend Setup
 1. Navigate to the frontend directory: `cd frontend`
-2. Install dependencies: `npm install`
-3. Start the development server: `npm run dev`
+2. Install Node.js dependencies: `npm install`
+3. Start the Vite development server: `npm run dev`
 4. Open your browser to `http://localhost:5173`
 
 ### Environment Configuration
-- Create a `.env` file in the root directory with required API keys and configuration variables
-- Ensure the backend is running on `localhost:8000` before starting the frontend
+Ensure backend API is accessible at `http://localhost:8000` from the frontend, and configure all required LLM provider API keys in the backend `.env` file before starting the development server.
 
 ## Latest Commit
 
-**`cd0b268`** by Krishna J — Merge branch 'main' of https://github.com/KrishnaJ0324/ur-tutor
+**`163eb7a`** by Krishna J — added logger to evaluation.py
 
-_No tracked file changes in this commit._
+- `backend/agents/evaluation.py` — Added logging import, created module-level logger, and added try-except error handling with info/debug log statements around agent invocation.
