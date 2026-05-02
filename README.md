@@ -1,47 +1,56 @@
-# UR Tutor
+# ur-tutor
 
 ## Overview
 
-UR Tutor is an adaptive AI tutoring system that uses multi-agent workflows to teach, quiz, and evaluate students in real-time. Built on LangGraph with a React frontend, it orchestrates specialized teaching, quiz, and evaluation agents to deliver personalized learning experiences through conversational interactions.
+UR Tutor is an adaptive AI tutoring system that uses multiple specialized agents orchestrated by a supervisor to provide personalized teaching, quizzing, and evaluation. The system combines a FastAPI backend powered by LangGraph with a modern React frontend to deliver real-time conversational learning experiences with streaming responses.
 
 ## Key Modules
 
-**Backend** — An adaptive AI tutoring engine built on LangGraph that orchestrates multi-agent workflows through a supervisor router. It dispatches user messages to specialized teaching, quiz, and evaluation agents, each enhanced with ReAct-style decision-making. The FastAPI-based infrastructure handles real-time streaming responses, LLM configuration with dual temperature settings for different task types, and in-memory state management. Google Gemini serves as the LLM backbone, and structured output enforcement ensures reliable data contracts between agents and the frontend for teaching materials, quiz questions, and grading rubrics.
+**Backend**: The backend is an adaptive AI tutoring system built on LangGraph and FastAPI that orchestrates multi-agent workflows through a router-based dispatcher. It implements a Supervisor Agent that intelligently routes user messages to specialized teaching, quiz, and evaluation agents, manages learner state through an in-memory GraphState structure, and exposes functionality via FastAPI HTTP endpoints that stream responses with embedded state metadata. All interactions are powered by Google Gemini models configured through a centralized LLM configuration layer, with workflow orchestration managed as a directed graph with memory checkpointing.
 
-**Frontend** — A modern React + TypeScript single-page application built with Vite that provides the user interface for UR Tutor. It features an interactive chat component for real-time tutoring conversations, a particle-animated background, profile tracking functionality, and a dark glassmorphic design language. The module streams responses from the backend API, manages user state, and leverages TypeScript and ESLint for code quality, with optimized development experience through Vite's hot module reloading.
+**Frontend**: The frontend is a modern React + TypeScript single-page application built with Vite that serves as the user-facing interface for the tutoring platform. It features a Chat component for real-time conversational interactions with streaming responses, a ProfileWidget for displaying learning statistics, and a tutorApi integration layer that manages session lifecycle and API communication. The application maintains a dark-mode glassmorphic design system with comprehensive CSS variables and is optimized for both development and production through Vite's build pipeline.
 
-**Root** — The foundational project configuration layer that establishes shared development practices for this hybrid Node.js and Python project. It provides a `.gitignore` configuration that excludes build artifacts, dependencies, and environment-specific files from version control while supporting a polyglot development environment across multiple language ecosystems.
+**Root**: The root module contains essential project configuration and documentation that establishes the foundation for the hybrid Node.js/Python technology stack. It includes `.gitignore` configuration for excluding build artifacts and environment files, and comprehensive README documentation that explains the system's multi-agent architecture and setup instructions.
 
 ## How It Works
 
-When a user submits a message through the React frontend chat interface, it's sent to the FastAPI backend where a supervisor router agent receives and analyzes the request. Based on the message content, the router dispatches the query to one of three specialized agents: a teaching agent for explanations and learning materials, a quiz agent for assessments, or an evaluation agent for grading and feedback. Each agent leverages Google Gemini as the underlying LLM with ReAct-style reasoning and tool invocation to autonomously break down problems and generate structured responses. The backend maintains conversation state in-memory via LangGraph, streams responses in real-time back to the frontend, and enforces strict schema validation to ensure reliable parsing and rendering of educational content.
+When a user sends a message through the React frontend, the Chat component streams the request to the FastAPI backend via the tutorApi layer. The backend's Supervisor Agent analyzes the message and routes it to the appropriate specialized agent—teaching, quiz, or evaluation—based on the user's needs. The selected agent processes the request using the current learner state (topics, difficulty level, conversation history) and generates a contextual response. The backend streams this response word-by-word back to the frontend with embedded state metadata, which the Chat component displays in real-time. The system persists conversation state across requests using a temporary file-based chat store, enabling continuous learning sessions without a permanent database.
 
 ## Getting Started
 
-### Prerequisites
-- Node.js (v16+) and npm
-- Python 3.9+
-- Google Gemini API key
+### Backend Setup
 
-### Installation
-
-**Backend:**
 ```bash
 cd backend
 pip install -r requirements.txt
-export GEMINI_API_KEY="your-api-key"
+export GOOGLE_API_KEY="your-api-key-here"
 python -m uvicorn main:app --reload
 ```
 
-**Frontend:**
+The backend will start on `http://localhost:8000`.
+
+### Frontend Setup
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### Configuration
-Create a `.env` file in the backend directory with your Google Gemini API key and desired LLM temperature settings for teaching and quiz modes.
+The frontend will start on `http://localhost:5173`.
 
-### Running Locally
-Start both the backend server (default: `http://localhost:8000`) and frontend dev server (default: `http://localhost:5173`). The frontend will automatically connect to the backend API and display the interactive tutoring interface.
+### Environment Configuration
+
+Create a `.env` file in the backend directory with your Google Gemini API key:
+
+```
+GOOGLE_API_KEY=your-api-key-here
+```
+
+Visit `http://localhost:5173` in your browser to access the tutoring interface.
+
+## Latest Commit
+
+**`2f81aed`** by Krishna J — docs: refresh README via docbot
+
+- `README.md` — The README was reformatted with simplified language, consolidated module descriptions, restructured Getting Started sections, and made code examples more concise and uniform.
