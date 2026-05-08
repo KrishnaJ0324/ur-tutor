@@ -6,26 +6,47 @@ import { loadSlim } from "@tsparticles/slim";
 import { endSession } from './api/tutorApi';
 
 function App() {
-  const [userId] = useState(() => 'user-' + Math.random().toString(36).substring(2, 9));
+  const [userId] = useState(() => {
+    const id = 'user-' + Math.random().toString(36).substring(2, 9);
+    console.info('[App] Generated new userId:', id);
+    return id;
+  });
   const [particlesReady, setParticlesReady] = useState(false);
 
   useEffect(() => {
+    console.info('[App] Initializing particles engine');
     initParticlesEngine(async (engine) => {
       await loadSlim(engine);
-    }).then(() => {
-      setParticlesReady(true);
-    });
+    })
+      .then(() => {
+        console.info('[App] Particles engine ready');
+        setParticlesReady(true);
+      })
+      .catch((err) => {
+        console.error('[App] Failed to initialize particles engine:', err);
+      });
   }, []);
 
   useEffect(() => {
-    const handleUnload = () => endSession(userId);
+    console.debug('[App] Registering beforeunload handler for userId:', userId);
+    const handleUnload = () => {
+      console.info('[App] beforeunload fired — ending session for userId:', userId);
+      endSession(userId);
+    };
     window.addEventListener('beforeunload', handleUnload);
-    return () => window.removeEventListener('beforeunload', handleUnload);
+    return () => {
+      console.debug('[App] Removing beforeunload handler for userId:', userId);
+      window.removeEventListener('beforeunload', handleUnload);
+    };
   }, [userId]);
 
   const handleReset = () => {
+    console.info('[App] Reset button clicked');
     if (window.confirm("Clear chat and start a new session?")) {
+      console.info('[App] Reset confirmed — reloading page');
       window.location.reload();
+    } else {
+      console.debug('[App] Reset cancelled by user');
     }
   };
 
