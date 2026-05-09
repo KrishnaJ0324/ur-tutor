@@ -1,34 +1,33 @@
-# ext-ai-enabled-adaptive-tutoring-engine
+# ext-ai-enabled-ur-tutor-service
 
-An adaptive AI tutoring system built on LangGraph that orchestrates specialized teaching, quiz, and evaluation agents powered by Google Gemini LLM to deliver personalized learning experiences.
+FastAPI-based adaptive AI tutoring system with multi-agent LangGraph architecture for intelligent content delivery, assessment, and grading.
 
 **Version:** `0.1.0`  
-**Maintainer:** UR Tutor Development Team &lt;dev@urtutor.local&gt;
+**Maintainer:** UR Tutor Development Team &lt;krishnaj0324@example.com&gt;
 
 ## Overview
 
-UR Tutor is an interactive AI-powered tutoring platform that combines LangGraph-based multi-agent orchestration with Socratic teaching methods to deliver adaptive, personalized learning experiences. The system dynamically routes between specialized agents (teach, quiz, evaluate) based on user intent and learner profile state, maintaining comprehensive progress tracking and educational metrics.
+UR Tutor is an adaptive AI tutoring system that intelligently routes user requests to specialized agents for teaching, quizzing, and grading. It combines a FastAPI backend with a React frontend to deliver real-time, personalized learning experiences using multi-agent LangGraph architecture with ReAct reasoning patterns.
 
 ### Key Features
 
-- Multi-agent LangGraph orchestration with teach, quiz, and evaluate agents
-- Real-time streaming responses powered by Google Gemini LLM
-- Adaptive difficulty level management based on learner performance
-- Session persistence with file-based chat history and progress tracking
-- Comprehensive learner profile metrics and performance analytics
-- Type-safe state machine for conversation flow management
-- React 19 frontend with real-time quiz interactions and particle animations
+- Multi-agent routing system with teach, quiz, and eval specialized agents
+- Real-time streaming responses with word-by-word delivery
+- Adaptive difficulty and rubric adjustment based on user performance
+- Session-based conversation history management
+- Strict Pydantic validation to prevent AI hallucination
+- Interactive React frontend with particle animations
+- Tool-calling enabled autonomous ReAct reasoning
 
 ### Dependencies
 
 - FastAPI
 - LangGraph
-- Google Gemini API
+- LangChain
+- Pydantic
 - React 19
 - TypeScript
 - Vite
-- Python 3.8+
-- Node.js 18+
 
 ## API Documentation
 
@@ -38,37 +37,34 @@ UR Tutor is an interactive AI-powered tutoring platform that combines LangGraph-
 
 ### Key Endpoints
 
-- `POST /chat` — Send a message to the tutoring system and receive a streamed response from the appropriate agent (teach, quiz, or evaluate)
-- `GET /profile` — Retrieve the current learner profile metrics including progress, difficulty level, and performance statistics
-- `POST /session` — Initialize a new tutoring session with optional learner context
-- `GET /history` — Fetch the chat history and interaction records for the current session
+- `POST /chat` — Primary endpoint for streaming tutoring interactions; accepts user messages and returns word-by-word streaming responses with profile metadata
+- `GET /health` — Health check endpoint to verify backend service availability
 
 ## Development
 
 ### Setup
 
 1. Clone the repository: git clone https://github.com/KrishnaJ0324/ur-tutor.git
-2. Install backend dependencies: cd backend && pip install -r requirements.txt
-3. Install frontend dependencies: cd frontend && npm install
-4. Configure Google Gemini API key in backend/.env
-5. Set up file-based session storage directory in backend/
+2. Install Python dependencies: pip install -r requirements.txt
+3. Install Node dependencies: npm install in the frontend directory
+4. Create .env file with LLM API keys (OPENAI_API_KEY or equivalent)
+5. Initialize session storage directory for chat history
 
-- **Start:** `cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000 & cd frontend && npm run dev`
-- **Test:** `cd backend && pytest tests/ && cd frontend && npm run test`
-- **Build:** `cd frontend && npm run build && cd backend && pip install -e .`
+- **Start:** `fastapi dev backend/main.py`
+- **Test:** `pytest backend/tests/`
+- **Build:** `npm run build`
 
 ## Deployment
 
-- **Docker image:** `krishnaj0324/ur-tutor:0.1.0`
+- **Docker image:** `ur-tutor:0.1.0`
 
 ### Environment Variables
 
-- `GOOGLE_GEMINI_API_KEY` *(required)* — API key for Google Gemini LLM service
-- `FASTAPI_HOST` — Host address for FastAPI backend server
-- `FASTAPI_PORT` — Port number for FastAPI backend server (default: 8000)
-- `SESSION_STORAGE_PATH` — File system path for storing session data and chat history
+- `OPENAI_API_KEY` *(required)* — API key for OpenAI LLM integration
+- `LANGCHAIN_API_KEY` — API key for LangChain tracing and monitoring
+- `SESSION_STORE_PATH` — File system path for persistent session and chat history storage
+- `FRONTEND_URL` — CORS-allowed frontend URL for API requests
 - `LOG_LEVEL` — Logging verbosity level (DEBUG, INFO, WARNING, ERROR)
-- `REACT_API_URL` — Base URL for frontend to communicate with backend API
 
 ## Latest Commit
 
