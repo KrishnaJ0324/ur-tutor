@@ -1,6 +1,6 @@
 # UR Tutor
 
-An adaptive AI tutoring system where you learn a topic **one concept at a time** and a topic is only marked **complete after you pass its quiz**. It is built on a [`deepagents`](https://pypi.org/project/deepagents/) harness running **Anthropic Claude Haiku 4.5**, with per-user accounts, isolated multi-session chat, skills-driven teaching, and a mastery-gated progress engine.
+An adaptive AI tutoring system where you learn a topic **one concept at a time** and a topic is only marked **complete after you pass its quiz**. It is built on a [`deepagents`](https://pypi.org/project/deepagents/) harness running **Claude Haiku 4.5 via [OpenRouter](https://openrouter.ai/)**, with per-user accounts, isolated multi-session chat, skills-driven teaching, and a mastery-gated progress engine.
 
 **Version:** `3.0.0`
 
@@ -20,7 +20,7 @@ The difficulty prompt and the quiz render as **interactive choice cards** above 
 ```
 React (Vite) ──HTTPS/JWT──> FastAPI
                               ├─ Auth (OAuth2 password + JWT)
-                              ├─ Deep agent harness (deepagents + Claude Haiku 4.5)
+                              ├─ Deep agent harness (deepagents + Claude Haiku 4.5 via OpenRouter)
                               │    ├─ skills: teach / quiz / evaluate  (SKILL.md files)
                               │    ├─ progress tools  (curriculum, mastery, quiz gate)
                               │    └─ CompositeBackend: StateBackend (per-session scratch)
@@ -35,7 +35,7 @@ React (Vite) ──HTTPS/JWT──> FastAPI
 
 ## Tech stack
 
-**Backend:** FastAPI · deepagents · LangChain / LangGraph · `langchain-anthropic` (Claude Haiku 4.5) · `langgraph-checkpoint-sqlite` · SQLAlchemy · python-jose (JWT) · bcrypt
+**Backend:** FastAPI · deepagents · LangChain / LangGraph · `langchain-openai` (Claude Haiku 4.5 via OpenRouter) · `langgraph-checkpoint-sqlite` · SQLAlchemy · python-jose (JWT) · bcrypt
 **Frontend:** React 19 · TypeScript · Vite · react-markdown · lucide-react · tsparticles
 
 ---
@@ -48,7 +48,7 @@ backend/
   config.py               settings from environment
   auth/                   security (bcrypt + JWT), deps, register/login/me routes
   core/
-    llm.py                ChatAnthropic(claude-haiku-4-5)
+    llm.py                ChatOpenAI(anthropic/claude-haiku-4.5) via OpenRouter
     agent.py              deep-agent harness, backends, checkpointer/store, history
   tools/progress_tools.py agent tools that drive the progress engine
   skills/{teach,quiz,evaluate}/SKILL.md   on-demand tutor skills
@@ -88,18 +88,18 @@ frontend/
 
 ## Local development
 
-**Prerequisites:** Python 3.12, Node.js 18+, an Anthropic API key with Claude Haiku access.
+**Prerequisites:** Python 3.12, Node.js 18+, an [OpenRouter](https://openrouter.ai/) API key with access to `anthropic/claude-haiku-4.5`.
 
 ### Backend
 
 ```bash
 cd backend
 pip install -r requirements.txt
-# create .env (see Environment variables below) with at least ANTHROPIC_API_KEY and JWT_SECRET
+# create .env (see Environment variables below) with at least OPENROUTER_API_KEY and JWT_SECRET
 python -m uvicorn main:app --reload --port 8000
 ```
 
-The app boots even without `ANTHROPIC_API_KEY` (auth and progress work; `/chat` returns a clear error until the key is set).
+The app boots even without `OPENROUTER_API_KEY` (auth and progress work; `/chat` returns a clear error until the key is set).
 
 ### Frontend
 
@@ -118,9 +118,10 @@ npm run dev          # http://localhost:5173
 
 | Variable | Required | Default | Notes |
 |---|---|---|---|
-| `ANTHROPIC_API_KEY` | ✅ | — | Claude Haiku-enabled key |
+| `OPENROUTER_API_KEY` | ✅ | — | OpenRouter key with access to Claude Haiku 4.5 |
 | `JWT_SECRET` | ✅ | insecure dev value | Long random string; **stable** (changing it invalidates all logins) |
-| `MODEL_NAME` | | `claude-haiku-4-5` | |
+| `OPENROUTER_BASE_URL` | | `https://openrouter.ai/api/v1` | OpenRouter's OpenAI-compatible endpoint |
+| `MODEL_NAME` | | `anthropic/claude-haiku-4.5` | OpenRouter model slug |
 | `MODEL_MAX_TOKENS` | | `8000` | |
 | `PASS_THRESHOLD` | | `0.8` | Quiz pass mark for topic completion |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | | `1440` | |
@@ -146,7 +147,7 @@ Generate a secret: `python -c "import secrets;print(secrets.token_urlsafe(48))"`
 
 **Backend → Render (Web Service)**
 - Root directory `backend`; build `pip install -r requirements.txt`; start `uvicorn main:app --host 0.0.0.0 --port $PORT`.
-- Env: `ANTHROPIC_API_KEY`, `JWT_SECRET`, `PYTHON_VERSION=3.12.6`. Optionally `FRONTEND_URL` (your Netlify URL) — the default `CORS_ORIGIN_REGEX` already allows `*.netlify.app` / `*.vercel.app`.
+- Env: `OPENROUTER_API_KEY`, `JWT_SECRET`, `PYTHON_VERSION=3.12.6`. Optionally `FRONTEND_URL` (your Netlify URL) — the default `CORS_ORIGIN_REGEX` already allows `*.netlify.app` / `*.vercel.app`.
 - Run a **single worker** (don't use `--workers`) — the SQLite checkpointer/store is single-instance.
 
 > **Persistence caveat:** on Render's free tier the filesystem is **ephemeral** — the SQLite databases (users, progress, conversations) are wiped on every redeploy and on cold starts after idle. For durable data, use a paid instance with a persistent disk (point the `*_DB_PATH` vars at it) or migrate to PostgreSQL.
@@ -157,5 +158,5 @@ CORS is HTTPS-aware and serves both platforms; the frontend must call the backen
 
 ## Notes
 
-- Registration is currently open and every `/chat` call consumes Anthropic credits — add rate limiting / an invite gate before exposing it publicly.
+- Registration is currently open and every `/chat` call consumes OpenRouter credits — add rate limiting / an invite gate before exposing it publicly.
 - `*.db` and `.env` files are gitignored; never commit them.

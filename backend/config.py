@@ -16,9 +16,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class Settings:
-    # --- LLM ---
-    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
-    MODEL_NAME: str = os.getenv("MODEL_NAME", "claude-haiku-4-5")
+    # --- LLM (Claude Haiku 4.5 via OpenRouter) ---
+    # OpenRouter is OpenAI-compatible, so we talk to it through langchain-openai's
+    # ChatOpenAI pointed at OpenRouter's base URL. MODEL_NAME uses OpenRouter's slug.
+    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
+    OPENROUTER_BASE_URL: str = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+    MODEL_NAME: str = os.getenv("MODEL_NAME", "anthropic/claude-haiku-4.5")
     MODEL_MAX_TOKENS: int = int(os.getenv("MODEL_MAX_TOKENS", "8000"))
 
     # --- Auth ---

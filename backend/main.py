@@ -29,8 +29,8 @@ async def lifespan(app: FastAPI):
     from core.agent import init_agent, close_agent
 
     init_db()
-    if not settings.ANTHROPIC_API_KEY:
-        logger.warning("ANTHROPIC_API_KEY is empty — /chat will fail until it is set in .env")
+    if not settings.OPENROUTER_API_KEY:
+        logger.warning("OPENROUTER_API_KEY is empty — /chat will fail until it is set in .env")
     await init_agent()
     logger.info("UR Tutor ready (model=%s)", settings.MODEL_NAME)
     try:

@@ -127,9 +127,9 @@ async def init_agent() -> None:
     store = AsyncSqliteStore(_store_conn)
     await store.setup()
 
-    if not settings.ANTHROPIC_API_KEY:
+    if not settings.OPENROUTER_API_KEY:
         # Boot without the model so auth/progress endpoints still work; /chat will return
-        # a clear error until ANTHROPIC_API_KEY is set in .env.
+        # a clear error until OPENROUTER_API_KEY is set in .env.
         _agent = None
         return
 
@@ -162,7 +162,7 @@ async def close_agent() -> None:
 def get_agent():
     if _agent is None:
         raise RuntimeError(
-            "Tutor agent unavailable. Set ANTHROPIC_API_KEY in backend/.env and restart."
+            "Tutor agent unavailable. Set OPENROUTER_API_KEY in backend/.env and restart."
         )
     return _agent
 

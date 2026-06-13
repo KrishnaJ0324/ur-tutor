@@ -70,7 +70,7 @@ async def chat_endpoint(req: ChatMessage, user: User = Depends(get_current_user)
 
     async def token_stream():
         try:
-            agent = get_agent()  # raises a clear error if ANTHROPIC_API_KEY is unset
+            agent = get_agent()  # raises a clear error if OPENROUTER_API_KEY is unset
             async for chunk, _meta in agent.astream(
                 payload, config=config, context=context, stream_mode="messages"
             ):
