@@ -1,76 +1,68 @@
 // src/api/tutorApi.ts
-const API_BASE_URL = 'http://localhost:8000';
+// Tutor client: all calls carry the JWT. Streaming is plain text tokens from the deep agent
+// (the old ||STATE|| side-channel is gone — progress now comes from GET /progress).
+import { API_BASE_URL, getToken, forceLogout } from './authApi';
 
-export interface QuizQuestion {
-  id: number;
-  question: string;
-  options: string[];
+export interface ConceptProgress {
+  name: string;
+  mastered: boolean;
 }
 
-export interface ProfileState {
-  level: string;
-  difficulty: string;
-  accuracy_trend: number;
-  active_quiz?: QuizQuestion[] | null;
-  needs_difficulty?: boolean;
+export interface TopicProgress {
+  topic: string;
+  difficulty?: string;
+  status: string; // in_progress | complete | not_started
+  percent: number;
+  pass_threshold?: number;
+  concepts: ConceptProgress[];
+}
+
+function authHeaders(extra: Record<string, string> = {}) {
+  return { Authorization: `Bearer ${getToken()}`, ...extra };
 }
 
 export const streamMessage = async (
-  userId: string, 
-  message: string, 
+  message: string,
   onChunk: (text: string) => void,
-  onStateUpdate: (state: ProfileState) => void
+  sessionId = 'main',
 ) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, message: message }),
-    });
+  const response = await fetch(`${API_BASE_URL}/chat`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ message, session_id: sessionId }),
+  });
 
-    if (!response.body) throw new Error('No response body');
+  if (response.status === 401) {
+    forceLogout();
+    throw new Error('Session expired');
+  }
+  if (!response.ok || !response.body) throw new Error(`Chat failed (${response.status})`);
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let done = false;
-
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      const chunkValue = decoder.decode(value, { stream: true });
-      
-      // Look for a state update hidden in the stream (optional backend implementation)
-      // Example: Backend sends "||STATE:{"level":"beginner"}||"
-      if (chunkValue.includes('||STATE:')) {
-        try {
-          const stateStr = chunkValue.split('||STATE:')[1].split('||')[0];
-          onStateUpdate(JSON.parse(stateStr));
-          // Remove the state data from the text shown to the user
-          onChunk(chunkValue.replace(`||STATE:${stateStr}||`, ''));
-        } catch (e) {
-          console.error("Failed to parse state from stream", e);
-        }
-      } else {
-        // Normal text chunk
-        onChunk(chunkValue);
-      }
-    }
-  } catch (error) {
-    console.error('Streaming error:', error);
-    throw error;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let done = false;
+  while (!done) {
+    const { value, done: doneReading } = await reader.read();
+    done = doneReading;
+    if (value) onChunk(decoder.decode(value, { stream: true }));
   }
 };
 
-export const resetProfile = async (userId: string) => {
-  await fetch(`${API_BASE_URL}/reset`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: userId, message: "" }),
-  });
+export const getProgress = async (): Promise<TopicProgress[]> => {
+  const res = await fetch(`${API_BASE_URL}/progress`, { headers: authHeaders() });
+  if (res.status === 401) {
+    forceLogout();
+    throw new Error('Session expired');
+  }
+  if (!res.ok) throw new Error(`Progress failed (${res.status})`);
+  const data = await res.json();
+  return data.topics ?? [];
 };
 
-export const endSession = (userId: string) => {
-  const body = JSON.stringify({ user_id: userId, message: "" });
-  const blob = new Blob([body], { type: 'application/json' });
-  navigator.sendBeacon(`${API_BASE_URL}/session/end`, blob);
+export const resetSession = async (sessionId = 'main') => {
+  await fetch(`${API_BASE_URL}/session/reset`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ session_id: sessionId }),
+  });
 };

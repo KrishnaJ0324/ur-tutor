@@ -1,19 +1,23 @@
-import os
-from langchain_google_genai import ChatGoogleGenerativeAI
-from dotenv import load_dotenv
+"""
+core/llm.py
+-----------
+The single, shared chat model: Anthropic Claude Haiku 4.5 via langchain-anthropic.
 
-load_dotenv()
+Notes:
+- Haiku 4.5 does NOT support the `effort` parameter (it errors), so we don't set it.
+- We pass a ChatAnthropic *instance* (not a "provider:model" string) so we control
+  max_tokens and streaming, and so deepagents can apply Anthropic prompt caching to the
+  frozen system prompt + skills catalog.
+"""
+from langchain_anthropic import ChatAnthropic
 
-# We instantiate the LLM ONCE globally to save huge overhead
-llm = ChatGoogleGenerativeAI(
-    model="gemini-3.1-flash-lite-preview", 
-    temperature=0.7,
-    google_api_key=os.getenv("GEMINI_API_KEY")
-)
+from config import settings
 
-# For quiz generation, we might want lower temp
-llm_strict = ChatGoogleGenerativeAI(
-    model="gemini-3.1-flash-lite-preview", 
-    temperature=0.2,
-    google_api_key=os.getenv("GEMINI_API_KEY")
-)
+
+def build_model() -> ChatAnthropic:
+    return ChatAnthropic(
+        model=settings.MODEL_NAME,            # "claude-haiku-4-5"
+        max_tokens=settings.MODEL_MAX_TOKENS,
+        timeout=120,
+        api_key=settings.ANTHROPIC_API_KEY or None,
+    )

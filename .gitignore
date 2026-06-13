@@ -11,6 +11,10 @@ env/
 
 # Environments
 .env
+frontend/.env
+
+# SQLite databases (created at runtime; never commit)
+*.db
 
 # MacOS
 .DS_Store

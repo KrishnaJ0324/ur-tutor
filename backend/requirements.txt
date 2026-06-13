@@ -2,10 +2,18 @@ fastapi
 uvicorn
 pydantic
 pydantic-settings
-langchain
-langchain-core
-langchain-community
-langchain-openai
 python-dotenv
 sqlalchemy
-langchain-google-genai
+
+# Deep agent harness + Anthropic Claude
+deepagents
+langchain
+langchain-core
+langchain-anthropic
+langgraph
+langgraph-checkpoint-sqlite
+
+# Auth
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
