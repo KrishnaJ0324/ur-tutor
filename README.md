@@ -2,6 +2,8 @@
 
 An adaptive AI tutoring system where you learn a topic **one concept at a time** and a topic is only marked **complete after you pass its quiz**. It is built on a [`deepagents`](https://pypi.org/project/deepagents/) harness running **Anthropic Claude Haiku 4.5**, with per-user accounts, isolated multi-session chat, skills-driven teaching, and a mastery-gated progress engine.
 
+**Checkout the website:** https://urtutor.netlify.app/
+
 **Version:** `3.0.0`
 
 ---
@@ -135,23 +137,6 @@ Generate a secret: `python -c "import secrets;print(secrets.token_urlsafe(48))"`
 | Variable | Default | Notes |
 |---|---|---|
 | `VITE_API_BASE_URL` | `http://localhost:8000` | Backend URL. **Baked in at build time** — set before building and redeploy to change. |
-
----
-
-## Deployment (split: Netlify + Render)
-
-**Frontend → Netlify**
-- Base directory `frontend`, build `npm run build`, publish `dist`.
-- Set `VITE_API_BASE_URL` to your backend URL, then **Clear cache and deploy** (Vite inlines it at build time).
-
-**Backend → Render (Web Service)**
-- Root directory `backend`; build `pip install -r requirements.txt`; start `uvicorn main:app --host 0.0.0.0 --port $PORT`.
-- Env: `ANTHROPIC_API_KEY`, `JWT_SECRET`, `PYTHON_VERSION=3.12.6`. Optionally `FRONTEND_URL` (your Netlify URL) — the default `CORS_ORIGIN_REGEX` already allows `*.netlify.app` / `*.vercel.app`.
-- Run a **single worker** (don't use `--workers`) — the SQLite checkpointer/store is single-instance.
-
-> **Persistence caveat:** on Render's free tier the filesystem is **ephemeral** — the SQLite databases (users, progress, conversations) are wiped on every redeploy and on cold starts after idle. For durable data, use a paid instance with a persistent disk (point the `*_DB_PATH` vars at it) or migrate to PostgreSQL.
-
-CORS is HTTPS-aware and serves both platforms; the frontend must call the backend over `https://` (no mixed content).
 
 ---
 
