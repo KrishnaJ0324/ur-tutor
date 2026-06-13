@@ -57,9 +57,10 @@ def _extract_text(chunk) -> str:
 @router.post("/chat", tags=["Tutor"])
 async def chat_endpoint(req: ChatMessage, user: User = Depends(get_current_user),
                         session: Session = Depends(get_session)):
-    # Ensure the session row exists, bump it to the top, and title it from the first message.
+    # Ensure the session row exists and bump it to the top. The title is set later, from the
+    # topic the tutor teaches (see get_or_create_curriculum), not from the first message.
     cs = sessions_repo.ensure(session, user.id, req.session_id)
-    sessions_repo.touch(session, cs, first_user_message=req.message)
+    sessions_repo.touch(session, cs)
 
     thread_id = _thread_id(user, req.session_id)
     config = {"configurable": {"thread_id": thread_id, "user_id": user.id}}

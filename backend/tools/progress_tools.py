@@ -14,6 +14,7 @@ from langchain_core.runnables.config import ensure_config
 from langchain_core.tools import tool
 
 from db import progress
+from db import sessions as sessions_repo
 from db.base import SessionLocal
 
 
@@ -23,6 +24,15 @@ def _uid() -> int:
     if uid is None:
         raise ValueError("No authenticated user in context.")
     return int(uid)
+
+
+def _sid() -> str | None:
+    """The chat session id for the current run, parsed from thread_id = '<user_id>:<session_id>'."""
+    cfg = ensure_config()
+    thread_id = (cfg.get("configurable") or {}).get("thread_id")
+    if not thread_id or ":" not in thread_id:
+        return None
+    return thread_id.split(":", 1)[1] or None
 
 
 def _json(data) -> str:
@@ -64,7 +74,12 @@ def get_or_create_curriculum(topic: str, proposed_concepts: list[str],
         })
     session = SessionLocal()
     try:
-        return _json(progress.set_curriculum(session, _uid(), topic, proposed_concepts, d))
+        result = progress.set_curriculum(session, _uid(), topic, proposed_concepts, d)
+        # Name the chat session after the topic being taught (only if still untitled).
+        sid = _sid()
+        if sid:
+            sessions_repo.set_topic_title(session, _uid(), sid, topic)
+        return _json(result)
     finally:
         session.close()
 

@@ -37,21 +37,13 @@ const parseChoices = (raw: string): ChoiceData | null => {
   return null;
 };
 
-const WelcomeCard = ({ onHintClick }: { onHintClick: (h: string) => void }) => (
+const WelcomeCard = () => (
   <div className="welcome-card">
     <div className="welcome-icon"><GraduationCap size={48} /></div>
     <h2 style={{ marginBottom: '8px' }}>UR Tutor</h2>
     <p style={{ color: 'var(--text-secondary)', fontSize: '14px', maxWidth: '320px' }}>
-      Tell me what you want to learn, or ask for a quiz. I'll teach one concept at a time and
-      only mark a topic complete once you pass its quiz.
+      Tell me what you want to learn 
     </p>
-    <div className="welcome-hints">
-      {['Teach me Python loops', 'Quiz me on variables'].map(hint => (
-        <span key={hint} className="hint-pill" style={{ cursor: 'pointer' }} onClick={() => onHintClick(hint)}>
-          {hint}
-        </span>
-      ))}
-    </div>
   </div>
 );
 
@@ -122,7 +114,7 @@ export const Chat: React.FC<Props> = ({ sessionId, initialMessages, onTurnComple
     <div className="chat-container">
       <div className="messages-area">
         {messages.length === 0 ? (
-          <WelcomeCard onHintClick={(hint) => sendDirect(hint)} />
+          <WelcomeCard />
         ) : (
           <div className="message-list">
             {messages.map((msg) => (

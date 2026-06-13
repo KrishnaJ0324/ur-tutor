@@ -54,13 +54,26 @@ def ensure(session: Session, user_id: int, sid: str) -> ChatSession:
     return cs
 
 
-def touch(session: Session, cs: ChatSession, first_user_message: str | None = None) -> None:
-    """Bump updated_at; set a title from the first message if still untitled."""
+def touch(session: Session, cs: ChatSession) -> None:
+    """Bump updated_at so the session sorts to the top of the list."""
     cs.updated_at = _utcnow()
-    if first_user_message and cs.title == DEFAULT_TITLE:
-        title = first_user_message.strip().splitlines()[0][:48]
-        cs.title = title or DEFAULT_TITLE
     session.commit()
+
+
+def set_topic_title(session: Session, user_id: int, sid: str, topic: str) -> None:
+    """Name a still-untitled session after the topic being taught.
+
+    Called when the tutor registers a curriculum, so the sidebar shows the concept
+    being learned rather than the learner's first raw message. Only renames a session
+    that is still on the default title, so it settles on the first real topic.
+    """
+    cs = get(session, user_id, sid)
+    if cs is None:
+        return
+    topic = (topic or "").strip()
+    if topic and cs.title == DEFAULT_TITLE:
+        cs.title = topic[:48]
+        session.commit()
 
 
 def delete(session: Session, user_id: int, sid: str) -> bool:
