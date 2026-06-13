@@ -46,9 +46,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Allowed origins: the configured production frontend(s) (FRONTEND_URL may be a
+# comma-separated list), plus any localhost/127.0.0.1 port for local dev via the regex.
+_allowed_origins = [o.strip() for o in settings.FRONTEND_URL.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    allow_origins=_allowed_origins,
+    allow_origin_regex=settings.CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

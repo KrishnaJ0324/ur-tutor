@@ -1,3 +1,6 @@
+
+
+
 """
 config.py
 ---------
@@ -35,7 +38,14 @@ class Settings:
     SKILLS_DIR: str = os.path.join(BASE_DIR, "skills")
 
     # --- CORS ---
+    # Exact allowed origin(s); comma-separated for multiple.
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    # Regex of additional allowed origins. Default covers localhost (any port) plus
+    # Vercel and Netlify deployments (production + per-deploy preview URLs).
+    CORS_ORIGIN_REGEX: str = os.getenv(
+        "CORS_ORIGIN_REGEX",
+        r"https?://(localhost|127\.0\.0\.1)(:\d+)?|https://[a-z0-9-]+\.(vercel\.app|netlify\.app)",
+    )
 
 
 settings = Settings()
