@@ -1,6 +1,8 @@
 # UR Tutor
 
-An adaptive AI tutoring system where you learn a topic **one concept at a time** and a topic is only marked **complete after you pass its quiz**. It is built on a [`deepagents`](https://pypi.org/project/deepagents/) harness running **Claude Haiku 4.5 via [OpenRouter](https://openrouter.ai/)**, with per-user accounts, isolated multi-session chat, skills-driven teaching, and a mastery-gated progress engine.
+An adaptive AI tutoring system where you learn a topic **one concept at a time** and a topic is only marked **complete after you pass its quiz**. It is built on a [`deepagents`](https://pypi.org/project/deepagents/) harness running **Anthropic Claude Haiku 4.5**, with per-user accounts, isolated multi-session chat, skills-driven teaching, and a mastery-gated progress engine.
+
+**Checkout the website:** https://urtutor.netlify.app/
 
 **Version:** `3.0.0`
 
