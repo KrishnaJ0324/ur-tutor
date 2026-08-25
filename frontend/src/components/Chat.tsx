@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Send, GraduationCap } from 'lucide-react';
-import { streamMessage } from '../api/tutorApi';
+import { streamMessage, MissingApiKeyError } from '../api/tutorApi';
 import type { HistoryMessage } from '../api/sessionApi';
 import { ChoiceCard, type ChoiceData } from './ChoiceCard';
 
@@ -16,6 +16,10 @@ interface Props {
   initialMessages: HistoryMessage[];
   // Called after each assistant turn completes so the parent can refresh progress + sessions.
   onTurnComplete: () => void;
+  // True once the user has stored an Anthropic API key in this browser.
+  hasKey: boolean;
+  // Open the key panel — used instead of sending when there is no key yet.
+  onNeedKey: () => void;
 }
 
 const CHOICES_OPEN = '[[CHOICES]]';
@@ -47,7 +51,7 @@ const WelcomeCard = () => (
   </div>
 );
 
-export const Chat: React.FC<Props> = ({ sessionId, initialMessages, onTurnComplete }) => {
+export const Chat: React.FC<Props> = ({ sessionId, initialMessages, onTurnComplete, hasKey, onNeedKey }) => {
   const [messages, setMessages] = useState<Message[]>(
     initialMessages.map((m, i) => ({ id: `h${i}`, role: m.role, content: m.content }))
   );
@@ -68,6 +72,8 @@ export const Chat: React.FC<Props> = ({ sessionId, initialMessages, onTurnComple
 
   const sendDirect = async (userMsg: string) => {
     if (!userMsg || isLoading) return;
+    // No key yet — send the user to the key panel rather than firing a doomed request.
+    if (!hasKey) { onNeedKey(); return; }
     setChoices(null);
 
     setMessages(prev => [...prev, { id: newId(), role: 'user', content: userMsg }]);
@@ -86,6 +92,7 @@ export const Chat: React.FC<Props> = ({ sessionId, initialMessages, onTurnComple
       const parsed = parseChoices(raw);
       if (parsed) setChoices(parsed);
     } catch (err) {
+      if (err instanceof MissingApiKeyError) onNeedKey();
       const msg = `⚠️ ${err instanceof Error ? err.message : 'Could not reach the backend.'}`;
       setMessages(prev => prev.map(m => (m.id === assistantId ? { ...m, content: m.content || msg } : m)));
     } finally {
@@ -156,7 +163,7 @@ export const Chat: React.FC<Props> = ({ sessionId, initialMessages, onTurnComple
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Message UR Tutor…"
+              placeholder={hasKey ? 'Message UR Tutor…' : 'Add your Anthropic API key to start…'}
               className="chat-input"
               disabled={isLoading}
               autoComplete="off"

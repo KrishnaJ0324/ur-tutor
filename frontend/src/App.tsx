@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { Chat } from './components/Chat';
 import { Login } from './components/Login';
 import { ProfileWidget } from './components/ProfileWidget';
-import { GraduationCap, LogOut, Plus, Trash2 } from 'lucide-react';
+import { ApiKeySetup } from './components/ApiKeySetup';
+import { GraduationCap, KeyRound, LogOut, Plus, Trash2 } from 'lucide-react';
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import { getToken, logout as clearAuth, getMe, type Me } from './api/authApi';
 import { getProgress, type TopicProgress } from './api/tutorApi';
+import { hasApiKey, clearApiKey } from './api/keyApi';
 import {
   listSessions, createSession, deleteSession, getSessionMessages,
   type SessionInfo, type HistoryMessage,
@@ -21,6 +23,9 @@ function App() {
   const [history, setHistory] = useState<HistoryMessage[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [particlesReady, setParticlesReady] = useState(false);
+  const [keyPresent, setKeyPresent] = useState<boolean>(() => hasApiKey());
+  // null = panel closed; 'nav' = opened from the header; 'blocked' = a send was blocked.
+  const [keyPanel, setKeyPanel] = useState<'nav' | 'blocked' | null>(null);
 
   useEffect(() => {
     initParticlesEngine(async (engine) => { await loadSlim(engine); }).then(() => setParticlesReady(true));
@@ -95,6 +100,8 @@ function App() {
 
   const handleLogout = () => {
     clearAuth();
+    clearApiKey();
+    setKeyPresent(false);
     setAuthed(false);
     setMe(null);
     setTopics([]);
@@ -137,6 +144,13 @@ function App() {
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {me && <span style={{ color: 'white', fontSize: 14, opacity: 0.85 }}>@{me.username}</span>}
+          <button
+            className={`icon-btn key-btn ${keyPresent ? 'set' : 'unset'}`}
+            onClick={() => setKeyPanel('nav')}
+            title={keyPresent ? 'Anthropic API key — added' : 'Add your Anthropic API key'}
+          >
+            <KeyRound size={20} />
+          </button>
           <button className="icon-btn" onClick={handleLogout} title="Log out"><LogOut size={20} /></button>
         </div>
       </header>
@@ -170,13 +184,28 @@ function App() {
         </aside>
 
         {activeId && !historyLoading ? (
-          <Chat key={activeId} sessionId={activeId} initialMessages={history} onTurnComplete={handleTurnComplete} />
+          <Chat
+            key={activeId}
+            sessionId={activeId}
+            initialMessages={history}
+            onTurnComplete={handleTurnComplete}
+            hasKey={keyPresent}
+            onNeedKey={() => setKeyPanel('blocked')}
+          />
         ) : (
           <div className="chat-container" style={{ alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
             Loading…
           </div>
         )}
       </div>
+
+      {keyPanel && (
+        <ApiKeySetup
+          required={keyPanel === 'blocked'}
+          onSaved={() => { setKeyPresent(hasApiKey()); setKeyPanel(null); }}
+          onClose={() => setKeyPanel(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,11 +1,14 @@
 
 
-
 """
 config.py
 ---------
 Central settings loaded from the environment (.env). Importing this module is the
 single place that calls load_dotenv(), so every other module just reads from `settings`.
+
+Note: there is no server-side model API key. UR Tutor is bring-your-own-key — each user
+supplies their own Anthropic API key from the frontend and it arrives on every /chat
+request in the X-Anthropic-Key header.
 """
 import os
 from dotenv import load_dotenv
@@ -16,13 +19,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class Settings:
-    # --- LLM (Claude Haiku 4.5 via OpenRouter) ---
-    # OpenRouter is OpenAI-compatible, so we talk to it through langchain-openai's
-    # ChatOpenAI pointed at OpenRouter's base URL. MODEL_NAME uses OpenRouter's slug.
-    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
-    OPENROUTER_BASE_URL: str = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-    MODEL_NAME: str = os.getenv("MODEL_NAME", "anthropic/claude-haiku-4.5")
+    # --- LLM (Claude Haiku 4.5 on the native Anthropic Messages API) ---
+    # The key is per-user and comes from the request, not from here.
+    ANTHROPIC_BASE_URL: str = os.getenv("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
+    MODEL_NAME: str = os.getenv("MODEL_NAME", "claude-haiku-4-5")
     MODEL_MAX_TOKENS: int = int(os.getenv("MODEL_MAX_TOKENS", "8000"))
+    # How many per-key agent graphs to keep compiled in memory at once.
+    AGENT_CACHE_SIZE: int = int(os.getenv("AGENT_CACHE_SIZE", "32"))
 
     # --- Auth ---
     JWT_SECRET: str = os.getenv("JWT_SECRET", "dev-only-insecure-change-me")

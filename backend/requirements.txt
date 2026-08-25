@@ -5,11 +5,12 @@ pydantic-settings
 python-dotenv
 sqlalchemy
 
-# Deep agent harness + Claude Haiku 4.5 via OpenRouter (OpenAI-compatible API)
+# Deep agent harness + Claude Haiku 4.5 on the native Anthropic Messages API
 deepagents
+anthropic
 langchain
 langchain-core
-langchain-openai
+langchain-anthropic
 langgraph
 langgraph-checkpoint-sqlite
 

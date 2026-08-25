@@ -2,6 +2,16 @@
 // Tutor client: all calls carry the JWT. Streaming is plain text tokens from the deep agent
 // (the old ||STATE|| side-channel is gone — progress now comes from GET /progress).
 import { API_BASE_URL, getToken, forceLogout } from './authApi';
+import { getApiKey } from './keyApi';
+
+// Thrown when the request had no Anthropic API key (backend replies 428). The UI catches
+// this to open the key panel instead of showing a raw error.
+export class MissingApiKeyError extends Error {
+  constructor(message = 'Add your Anthropic API key to start chatting.') {
+    super(message);
+    this.name = 'MissingApiKeyError';
+  }
+}
 
 export interface ConceptProgress {
   name: string;
@@ -26,9 +36,12 @@ export const streamMessage = async (
   onChunk: (text: string) => void,
   sessionId = 'main',
 ) => {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new MissingApiKeyError();
+
   const response = await fetch(`${API_BASE_URL}/chat`, {
     method: 'POST',
-    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    headers: authHeaders({ 'Content-Type': 'application/json', 'X-Anthropic-Key': apiKey }),
     body: JSON.stringify({ message, session_id: sessionId }),
   });
 
@@ -36,6 +49,7 @@ export const streamMessage = async (
     forceLogout();
     throw new Error('Session expired');
   }
+  if (response.status === 428) throw new MissingApiKeyError();
   if (!response.ok || !response.body) throw new Error(`Chat failed (${response.status})`);
 
   const reader = response.body.getReader();

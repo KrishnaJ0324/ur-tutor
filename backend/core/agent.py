@@ -11,10 +11,17 @@ Isolation:
   under /memories/ in an AsyncSqliteStore namespaced to the authenticated user_id, so one
   user's files can never surface in another's run.
 
+Bring-your-own-key: there is no server-side model key, so the graph cannot be compiled at
+startup. get_agent(api_key) compiles one graph per distinct key and keeps the most recent
+few in a bounded LRU — the checkpointer and store underneath are shared by all of them, so
+switching keys never changes what a user can see.
+
 Lifecycle: init_agent() / close_agent() are called from the FastAPI lifespan so the async
-SQLite connections live for the process. get_agent() returns the compiled graph.
+SQLite connections live for the process.
 """
+import hashlib
 import re
+from collections import OrderedDict
 from dataclasses import dataclass
 
 import aiosqlite
@@ -98,10 +105,13 @@ emit a block when offering discrete choices — never for normal teaching or ope
 _SKILLS = ["/skills/teach/", "/skills/quiz/", "/skills/evaluate/"]
 
 # Module-level handles populated by init_agent().
-_agent = None
 _saver: AsyncSqliteSaver | None = None
+_store: AsyncSqliteStore | None = None
 _saver_conn: aiosqlite.Connection | None = None
 _store_conn: aiosqlite.Connection | None = None
+
+# Compiled graphs keyed by a hash of the user's API key (the key itself is never stored).
+_agents: OrderedDict[str, object] = OrderedDict()
 
 
 def _build_backend() -> CompositeBackend:
@@ -115,8 +125,11 @@ def _build_backend() -> CompositeBackend:
 
 
 async def init_agent() -> None:
-    """Open async SQLite connections, set up the checkpointer + store, build the agent."""
-    global _agent, _saver, _saver_conn, _store_conn
+    """Open the async SQLite connections and set up the checkpointer + store.
+
+    No graph is compiled here — graphs are per-API-key and built lazily by get_agent().
+    """
+    global _saver, _store, _saver_conn, _store_conn
 
     _saver_conn = await aiosqlite.connect(settings.CHECKPOINT_DB_PATH)
     saver = AsyncSqliteSaver(_saver_conn)
@@ -126,31 +139,14 @@ async def init_agent() -> None:
     _store_conn = await aiosqlite.connect(settings.STORE_DB_PATH)
     store = AsyncSqliteStore(_store_conn)
     await store.setup()
-
-    if not settings.OPENROUTER_API_KEY:
-        # Boot without the model so auth/progress endpoints still work; /chat will return
-        # a clear error until OPENROUTER_API_KEY is set in .env.
-        _agent = None
-        return
-
-    _agent = create_deep_agent(
-        model=build_model(),
-        system_prompt=SYSTEM_PROMPT,
-        tools=PROGRESS_TOOLS,
-        skills=_SKILLS,
-        backend=_build_backend(),
-        context_schema=TutorContext,
-        checkpointer=saver,
-        store=store,
-        # /skills is shared, read-only — the agent must not edit its own instructions.
-        permissions=[FilesystemPermission(operations=["write"], paths=["/skills/**"], mode="deny")],
-    )
+    _store = store
 
 
 async def close_agent() -> None:
-    global _agent, _saver, _saver_conn, _store_conn
-    _agent = None
+    global _saver, _store, _saver_conn, _store_conn
+    _agents.clear()
     _saver = None
+    _store = None
     if _saver_conn is not None:
         await _saver_conn.close()
         _saver_conn = None
@@ -159,12 +155,34 @@ async def close_agent() -> None:
         _store_conn = None
 
 
-def get_agent():
-    if _agent is None:
-        raise RuntimeError(
-            "Tutor agent unavailable. Set OPENROUTER_API_KEY in backend/.env and restart."
-        )
-    return _agent
+def get_agent(api_key: str):
+    """Return the compiled graph for this Anthropic API key, building it on first use."""
+    if _saver is None or _store is None:
+        raise RuntimeError("Tutor agent unavailable: the backend is still starting up.")
+    if not api_key:
+        raise RuntimeError("No Anthropic API key supplied for this request.")
+
+    cache_key = hashlib.sha256(api_key.encode()).hexdigest()
+    if cache_key in _agents:
+        _agents.move_to_end(cache_key)
+        return _agents[cache_key]
+
+    agent = create_deep_agent(
+        model=build_model(api_key),
+        system_prompt=SYSTEM_PROMPT,
+        tools=PROGRESS_TOOLS,
+        skills=_SKILLS,
+        backend=_build_backend(),
+        context_schema=TutorContext,
+        checkpointer=_saver,
+        store=_store,
+        # /skills is shared, read-only — the agent must not edit its own instructions.
+        permissions=[FilesystemPermission(operations=["write"], paths=["/skills/**"], mode="deny")],
+    )
+    _agents[cache_key] = agent
+    while len(_agents) > settings.AGENT_CACHE_SIZE:
+        _agents.popitem(last=False)
+    return agent
 
 
 async def reset_thread(thread_id: str) -> None:
@@ -193,11 +211,15 @@ def _message_text(message) -> str:
 
 
 async def get_history(thread_id: str) -> list[dict]:
-    """Return the user/assistant transcript for a thread (markers stripped) for UI reload."""
-    if _agent is None:
+    """Return the user/assistant transcript for a thread (markers stripped) for UI reload.
+
+    Read straight from the checkpointer rather than through a graph: reloading a transcript
+    must work even when the user has not entered an API key yet.
+    """
+    if _saver is None:
         return []
-    state = await _agent.aget_state({"configurable": {"thread_id": thread_id}})
-    messages = (state.values or {}).get("messages", []) if state else []
+    tup = await _saver.aget_tuple({"configurable": {"thread_id": thread_id}})
+    messages = (tup.checkpoint.get("channel_values", {}).get("messages", []) if tup else [])
     out: list[dict] = []
     for m in messages:
         role = getattr(m, "type", None)
